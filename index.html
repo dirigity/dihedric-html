@@ -1,0 +1,404 @@
+<html>
+    <head>
+        <style>
+            canvas {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            body{
+                width: 100%;
+                height: 100%;
+                margin: 0px;
+                padding: 0px;
+            }
+        </style>
+    </head>
+    <body>  
+        <canvas onclick="CanvasClicked()" id="MainCanvasDisplay" oncontextmenu="select()"></canvas>
+        <script>
+	    var canvas = document.getElementById("MainCanvasDisplay");
+        var ctx = canvas.getContext("2d");
+        var objetos = [];
+        var ratonx = 0;
+        var ratony = 0;
+        var bratonx = 0;
+        var bratony = 0;
+        var alreadyPressedT = false;
+        var alreadyPressedM = false;
+        var triedro = true;
+        var movemode = 0;
+        var rxinitial = 0;
+        var ryinitial = 0;
+        var pxinitial = 0;
+        var pyinitial = 0;
+        var pzinitial = 0;
+        var triedroLineP = 70;
+        var trdCursorY = 0;
+        var nameOfpt = -2;
+        var selection = -1;
+        
+        
+        var keys = [];
+        window.onkeyup = function(e) { keys[e.keyCode] = false; tick(); }
+        window.onkeydown = function(e) { keys[e.keyCode] = true; tick(); }
+
+        function tick(){
+            //togle triedro sequence         
+            if(keys[84]==true&&!alreadyPressedT){
+                alreadyPressedT = true;
+                toggleTriedro();
+            }
+            if(keys[84]==false){
+
+                alreadyPressedT = false;
+            }
+            //togle move sequence         
+            if(keys[77]==true&&!alreadyPressedM){
+                if(selection!=-1){
+                    alreadyPressedM = true;
+                    movemode = !movemode
+                    if(movemode==true){
+                        rxinitial = ratonx;
+                        ryinitial = ratony;
+                        pxinitial = objetos[selection][1];
+                        pyinitial = objetos[selection][2];
+                        pzinitial = objetos[selection][3];
+
+                    }
+                }
+            }
+            if(keys[77]==false){
+                alreadyPressedM = false;
+            }
+            if(keys[78]==true){
+                //n
+                movemode = false;
+                objetos[selection][1] = pxinitial;
+                objetos[selection][2] = pyinitial;
+                objetos[selection][3] = pzinitial;
+
+            }
+            //set up the canvas
+            ctx.fillRect(0, 0, canvas.height, canvas.width);
+            canvas.height = canvas.clientHeight;
+            canvas.width = canvas.clientWidth;
+            //draw the diedro or triedro
+            drawXYrect(5,0,canvas.width-10,1,rgb(0,0,0));
+            drawXYrect(5,-5,10,1,rgb(0,0,0));
+            if(triedro){
+                drawXYrect(canvas.width*(triedroLineP/100),(canvas.height-10)/2,1,canvas.height-10,rgb(0,0,0));
+                drawXYrect(canvas.width*(triedroLineP/100)+5,(canvas.height-10)/2,1,10,rgb(0,0,0));
+                drawXYrect(canvas.width*(triedroLineP/100)+5,-(canvas.height-10)/2+10,1,10,rgb(0,0,0));            
+                drawXYrect(canvas.width*(triedroLineP/100)+10,(canvas.height-10)/2,1,10,rgb(0,0,0));
+                drawXYrect(canvas.width*(triedroLineP/100)+10,-(canvas.height-10)/2+10,1,10,rgb(0,0,0));            
+                drawXYrect(canvas.width*(triedroLineP/100)-15,-5,10,1,rgb(0,0,0));
+                drawXYrect(0,trdCursorY ,canvas.width*(triedroLineP/100),1,rgb(100,100,100));
+                drawXYrect(canvas.width*(triedroLineP/100)-trdCursorY,0,1,-1000,rgb(100,100,100));
+                ctx.beginPath();
+                if(trdCursorY>0){
+                    ctx.arc(canvas.width*(triedroLineP/100),canvas.height/2,trdCursorY,Math.PI,1.5*Math.PI);
+                }else if(trdCursorY<0){
+                    ctx.arc(canvas.width*(triedroLineP/100),canvas.height/2,-trdCursorY,0,0.5*Math.PI);
+                }
+                ctx.stroke();
+
+            }else{
+                drawXYrect(canvas.width-15,-5,10,1,rgb(0,0,0));
+                drawXYrect(0,trdCursorY ,canvas.width,1,rgb(100,100,100));
+            }
+            
+            
+            //remove
+            if(keys[88]==true && selection!=-1){
+                objetos[selection][0]="placeholder";
+            }
+            //move
+            if(movemode){
+                objetos[selection][1] = pxinitial + ratonx - rxinitial;
+                objetos[selection][2] = pyinitial + ratony - ryinitial;
+            }
+            //deselect
+            if(keys[68]==true){
+                selection = -1
+            }
+            //render stuff
+            for (let i = 0; i < objetos.length; i++) {
+                const element = objetos[i];
+                if(element[0]=="pn"){
+                    if(i==selection){
+                        circulico(element[1],element[2],rgb(225,0,0),element[4]+"'");
+                        circulico(element[1],element[3],rgb(255,0,0),element[4]+"");
+                        if(triedro)circulico(-element[3]+canvas.width*(triedroLineP/100),element[2],rgb(255,0,0),element[4]+"''");
+                    }
+                    cross(element[1],element[2],rgb(0,0,0),element[4]+"'");
+                    cross(element[1],element[3],rgb(0,0,0),element[4]+"");
+                    if(triedro)cross(-element[3]+canvas.width*(triedroLineP/100),element[2],rgb(0,0,0),element[4]+"''");
+                }else if(element[0]=="rc"){
+                    //check it is posible
+                    if(objetos[element[1]][0]=="pn" && objetos[element[2]][0]=="pn"){
+                        var c = rgb(0,0,0);
+                        if(i==selection){
+                            c = rgb(0,255,255);
+                        }
+                        drawrect(c,objetos[element[1]][1],objetos[element[1]][2],objetos[element[2]][1],objetos[element[2]][2])
+                        drawrect(c,objetos[element[1]][1],objetos[element[1]][3],objetos[element[2]][1],objetos[element[2]][3])
+                        if(triedro)drawrect(-objetos[element[1]][3]+canvas.width*(triedroLineP/100),objetos[element[1]][2],-objetos[element[2]][3]+canvas.width*(triedroLineP/100),objetos[element[2]][2])
+                        
+                        var vectorx1 = objetos[element[1]][1]-objetos[element[2]][1];
+                        var vectory1 = objetos[element[1]][2]-objetos[element[2]][2];
+                        var vectorx2 = objetos[element[1]][1]-objetos[element[2]][1];
+                        var vectory2 = objetos[element[1]][3]-objetos[element[2]][3];
+
+                        var pendiente1 = vectorx1/vectory1;
+                        var ordenadaeeo1 = (pendiente1*-objetos[element[1]][2])+objetos[element[1]][1]
+                        cross(ordenadaeeo1,0,rgb(0,0,0),"th'");
+                        
+                        var pendiente2 = vectorx2/vectory2;
+                        var ordenadaeeo2 = (pendiente2*-objetos[element[1]][3])+objetos[element[1]][1]
+                        cross(ordenadaeeo2,0,rgb(0,0,0),"tv");
+                        
+                        element[4]=discontinua(ordenadaeeo1,objetos[element[1]][1],objetos[element[1]][3],vectorx2,vectory2,"th");
+                        element[5]=discontinua(ordenadaeeo2,objetos[element[1]][1],objetos[element[1]][2],vectorx1,vectory1,"tv'");
+
+                        if(triedro){
+                            var vectorx = objetos[element[1]][3]-objetos[element[2]][3];
+                            var vectory = objetos[element[1]][2]-objetos[element[2]][2];
+                            var pendiente = vectorx/vectory;
+                            var ordenadaeeo = (pendiente*-objetos[element[1]][2])+objetos[element[1]][3]
+                            cross(-ordenadaeeo+canvas.width*(triedroLineP/100),0,rgb(0,0,0),"th''");
+
+                            var vectorx = -objetos[element[1]][3]+objetos[element[2]][3];
+                            var vectory = -objetos[element[1]][2]+objetos[element[2]][2];
+                            var pendiente = vectory/vectorx;
+                            var ordenadaeeo = (pendiente*-objetos[element[2]][3])+objetos[element[2]][2]
+                            cross(+canvas.width*(triedroLineP/100),ordenadaeeo,rgb(0,0,0),"tv''");
+                        }
+                       
+
+
+                    }
+                }else if(element[0]=="pl"){
+
+                }
+            }
+
+            
+        }
+        function CanvasClicked(){
+            if(keys[80]==true){
+                if(keys[16]==true){
+                    objetos.push(["pn",ratonx,ratony,trdCursorY,window.prompt("name:","")])
+                }else objetos.push(["pn",ratonx,ratony,trdCursorY,namept()])
+                keys[16]=false
+            }
+            if(selection != -1 && keys[82] == true){
+                var ret = -1;
+                distanceret = 30;
+                for (let i = 0; i < objetos.length; i++) {
+                    const element = objetos[i];
+                    if(element[0]=="pn"){
+                        if(distance(element[1],element[2],ratonx,ratony)<distanceret){
+                            distanceret = distance(element[1],element[2],ratonx,ratony);
+                            ret = i;
+                        }else if(distance(element[1],element[3],ratonx,ratony)<distanceret){
+                            distanceret = distance(element[1],element[3],ratonx,ratony);
+                            ret = i;
+                        }else if(distance(-element[3]+canvas.width*(triedroLineP/100),element[2],ratonx,ratony)<distanceret){
+                            distanceret = distance(-element[3]+canvas.width*(triedroLineP/100),element[2],ratonx,ratony);
+                            ret = i;
+                        }
+                    }
+                }
+                if(ret != -1){ 
+                    objetos.push(["rc",selection,ret])
+                }
+            }
+            tick();
+        }
+        tick();
+        tick();
+        tick();
+        function select() {
+            var ret = -1;
+            distanceret = 30;
+            for (let i = 0; i < objetos.length; i++) {
+                const element = objetos[i];
+                if(element[0]=="pn"){
+                    if(distance(element[1],element[2],ratonx,ratony)<distanceret){
+                        distanceret = distance(element[1],element[2],ratonx,ratony);
+                        ret = i;
+                    }else if(distance(element[1],element[3],ratonx,ratony)<distanceret){
+                        distanceret = distance(element[1],element[3],ratonx,ratony);
+                        ret = i;
+                    }else if(triedro && distance(-element[3]+canvas.width*(triedroLineP/100),element[2],ratonx,ratony)<distanceret){
+                        distanceret = distance(-element[3]+canvas.width*(triedroLineP/100),element[2],ratonx,ratony);
+                        ret = i;
+                    }
+                }
+                if(element[0]=="rc"){
+                    if(distance(ratonx,ratony,element[4][0],0)<distanceret){
+                        distanceret = distance(ratonx,ratony,element[4][0],0)
+                        ret = i;
+                    }else  if(distance(ratonx,ratony,element[4][0],element[4][1])<distanceret){
+                        distanceret = distance(ratonx,ratony,element[4][0],element[4][1])
+                        ret = i;
+                    }else if(distance(ratonx,ratony,element[5][0],0)<distanceret){
+                        distanceret = distance(ratonx,ratony,element[5][0],0)
+                        ret = i;
+                    }else  if(distance(ratonx,ratony,element[5][0],element[5][1])<distanceret){
+                        distanceret = distance(ratonx,ratony,element[5][0],element[5][1]);
+                        ret = i; 
+                    }
+                }
+            }
+            if(ret != -1) selection = ret;
+        }
+        function drawrect(c,x1,y1,x2,y2,) {
+            var vectorx = x1-x2;
+            var vectory = y1-y2;
+            var px1 = vectorx*1000 + x1
+            var py1 = -(vectory*1000 + y1) + canvas.height/2
+            var px2 = -vectorx*1000 + x1
+            var py2 = -(-vectory*1000 + y1) + canvas.height/2
+            ctx.strokeStyle = c;
+            ctx.beginPath();
+            ctx.moveTo(px1, py1);
+            ctx.lineTo(px2, py2);
+            ctx.stroke();
+            ctx.strokeStyle = rgb(0,0,0);
+        }
+        function discontinua(x,x1,x2,vx,vy,c) {
+            var fy = yinx(x,x1,x2,vx,vy);
+            if(fy >1000) fy = 1000;
+            if(fy <-1000) fy = -1000;
+            console.log(fy);
+
+            if(fy>0) for (let i = 0; i < fy; i++) {
+                if(i%20>10){
+                    drawXYrect(x,i,1,1,rgb(0,0,0));
+                }
+            }
+            if(fy<0) for (let i = 0; i > fy; i--) {
+                if(i%-20>10){
+                    drawXYrect(x,i,1,1,rgb(0,0,0));
+                }
+            }
+            cross(x,fy,rgb(0,0,0),c);
+            return[x,fy];
+
+        }
+        function yinx(x,x1,x2,vx,vy) {
+            return (((x-x1)/vx)*vy)+x2;
+        }
+        function distance(x1,y1,x2,y2){
+            return Math.sqrt(Math.pow(x1-x2,2)+Math.pow(y1-y2,2));
+            
+        }
+        function namept() {
+            if(nameOfpt==-2){
+                nameOfpt++;
+                return "p";
+            }
+            if(nameOfpt==-1){
+                nameOfpt++;
+                return "s";
+            }
+            nameOfpt++;
+            return "p"+nameOfpt
+        }
+        function cross(x,y,c,t){
+            drawXYrect(x-5,y,10,1,c);
+            drawXYrect(x,y+5,1,10,c);
+            ctx.font = "10px Arial";
+            ctx.fillText(t,x+5,-y+canvas.height/2-5);
+        }
+        function circulico(x,y,c) {
+            drawXYrect(x-5,y+5,10,10,c);
+        }
+        function drawXYrect(x, y, w, h, color) {
+            if(color) 
+                ctx.fillStyle = color; 
+            else 
+                ctx.fillStyle = "#555555";
+
+            y = -y+canvas.height/2;
+            ctx.fillRect(x, y, w, h);
+        }
+        function rgb(r,g,b) {
+            var r_ = check(decToHex(r));
+            var g_ = check(decToHex(g));
+            var b_ = check(decToHex(b));
+            return "#"+r_+g_+b_;
+        }
+        function decToHex(n) {
+            if(n<0){
+                n = 0xFFFFFFFF + n + 1;
+            }
+            return Math.round(n).toString(16).toUpperCase();
+        }
+        function check(n){
+            //console.log(n)
+            if(n.length>2){
+                return "FF";
+            }else if (n.length<2){
+                return "0"+n;
+
+            }else return n
+        }
+        canvas.addEventListener('mousemove',function onMouseover(e){
+            ratonx = e.clientX;
+            ratony = -e.clientY+canvas.height/2;
+            if(movemode) tick();
+        });
+        function toggleTriedro(){
+            console.log("toggle Triedro")
+            triedro = !triedro;
+        }
+        window.addEventListener("wheel", event => {
+            var movement = Math.sign(event.wheelDelta);
+            if(movemode == false){
+                if(movement==1){
+                    if(keys[16]==true){
+                        trdCursorY=trdCursorY+1;
+                    }else{
+                        trdCursorY=trdCursorY+10;
+                    }
+                }else if(movement==-1){
+                    if(keys[16]==true){
+                        trdCursorY=trdCursorY-1;
+                    }else{
+                        trdCursorY=trdCursorY-10;
+                    }
+                }
+            }else{
+                if(movement==1){
+                    if(keys[16]==true){
+                        objetos[selection][3]=objetos[selection][3]+1;
+                    }else{
+                        objetos[selection][3]=objetos[selection][3]+10;
+                    }
+                }else if(movement==-1){
+                    if(keys[16]==true){
+                        objetos[selection][3]=objetos[selection][3]-1;
+                    }else{
+                        objetos[selection][3]=objetos[selection][3]-10;
+                    }
+                }
+            }
+            tick();
+        });
+        document.oncontextmenu=RightMouseDown;
+        document.onmousedown = mouseDown; 
+        function mouseDown(e) {
+            if (e.which==3) {//righClick
+                select();
+                tick();
+            }
+        }
+        function RightMouseDown() { tick(); return false;}
+        tick();
+        </script>
+    </body>
+</html>
