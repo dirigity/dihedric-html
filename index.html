@@ -422,16 +422,19 @@
             console.log("toggle Triedro")
             triedro = !triedro;
         }
-        window.addEventListener("wheel", event => {
-            var movement = Math.sign(event.wheelDelta);
+        window.addEventListener('DOMMouseScroll', mouseWheelEvent);
+        window.addEventListener("wheel", mouseWheelEvent);
+        function mouseWheelEvent(e){
+            console.log(e.wheelDelta ? e.wheelDelta : -e.detail);
+            var movement = (e.wheelDelta ? e.wheelDelta : -e.detail)/120;
             if(movemode == false){
-                if(movement==1){
+                if(movement>0){
                     if(keys[16]==true){
                         trdCursorY=trdCursorY+1;
                     }else{
                         trdCursorY=trdCursorY+10;
                     }
-                }else if(movement==-1){
+                }else if(movement<0){
                     if(keys[16]==true){
                         trdCursorY=trdCursorY-1;
                     }else{
@@ -439,13 +442,13 @@
                     }
                 }
             }else{
-                if(movement==1){
+                if(movement>0){
                     if(keys[16]==true){
                         objetos[selection][3]=objetos[selection][3]+1;
                     }else{
                         objetos[selection][3]=objetos[selection][3]+10;
                     }
-                }else if(movement==-1){
+                }else if(movement<0){
                     if(keys[16]==true){
                         objetos[selection][3]=objetos[selection][3]-1;
                     }else{
@@ -454,7 +457,7 @@
                 }
             }
             tick();
-        });
+        }
         document.oncontextmenu=RightMouseDown;
         document.onmousedown = mouseDown; 
         function mouseDown(e) {
